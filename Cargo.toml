@@ -1,0 +1,9 @@
+[package]
+name = "scd30"
+version = "0.1.0"
+authors = ["Vincent Stakenburg <vincentstakenburg@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+embedded-hal = "0.2.2"
+heapless = "0.4.2"
