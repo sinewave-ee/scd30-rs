@@ -1,9 +1,10 @@
 [package]
 name = "scd30"
-version = "0.2.2"
+version = "0.2.3"
+description = "A SCD30 driver crate"
 authors = ["Vincent Stakenburg <vincentstakenburg@gmail.com>"]
 repository = "https://github.com/sinuss/scd30-rs"
-description = "A SCD30 driver crate"
+readme = "README.md"
 categories = ["no-std", "embedded"]
 license = "Apache-2.0"
 edition = "2018"
