@@ -2,7 +2,8 @@
 # SCD30
 A SCD30 driver crate
 
-![Crates.io](https://img.shields.io/crates/d/scd30.svg?style=flat-square) ![Crates.io](https://img.shields.io/crates/l/scd30.svg?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/d/scd30.svg?style=flat-square)](https://crates.io/crates/scd30) 
+[![Crates.io](https://img.shields.io/crates/l/scd30.svg?style=flat-square)](https://github.com/sinuss/scd30-rs/blob/master/LICENSE)
 
 **Documentation**
 * [docs.rs](https://docs.rs/scd30)
