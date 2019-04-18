@@ -2,6 +2,10 @@
 name = "scd30"
 version = "0.2.0"
 authors = ["Vincent Stakenburg <vincentstakenburg@gmail.com>"]
+repository = "https://github.com/sinuss/scd30-rs"
+description = "A SCD30 driver crate"
+categories = ["no-std", "embedded"]
+license = "MIT"
 edition = "2018"
 
 [dependencies]
