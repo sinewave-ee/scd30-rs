@@ -1,5 +1,5 @@
 use embedded_hal::blocking::i2c::{Read, Write};
-use heapless::Vec;
+use heapless::{Vec, ArrayLength};
 use heapless::consts::*;
 use crc_all::Crc;
 
@@ -36,6 +36,14 @@ pub struct Measurement {
 ///
 /// [datasheet]: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/9.5_CO2/Sensirion_CO2_Sensors_SCD30_Interface_Description.pdf
 impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
+
+    fn add_argument<N>(&mut self, buf: &mut Vec<u8, N>, data: &[u8]) -> Result<(), ()> where N: ArrayLength<u8> {
+        buf.extend_from_slice(data)?;
+        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
+        crc.update(data);
+        buf.push(crc.finish()).map_err(|_| ())
+    }
+
     /// Returns an [Scd30] instance with the default address 0x61 shifted one place to the left.
     /// You may or may not need this bitshift depending on the byte size of
     /// your [I²c](embedded_hal::blocking::i2c) peripheral.
@@ -68,16 +76,16 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     /// 7 days to find the initial parameter for ASC. The sensor has to be exposed to
     /// at least 1 hour of fresh air (~400ppm CO₂) per day.
     pub fn set_automatic_calibration(&mut self, enable: bool) -> Result<(), E> {
-        let mut vec: Vec<u8, U4> = Vec::new();
+        let mut vec: Vec<u8, U5> = Vec::new();
         vec.extend_from_slice(&(Command::SetAutomaticSelfCalibration as u16).to_be_bytes()).expect(EXPECT_MSG);
-        vec.extend_from_slice(&[ 0x00, enable as u8 ]).expect(EXPECT_MSG);
+        self.add_argument(&mut vec, &(enable as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
     }
 
     pub fn set_forced_recalibration_value(&mut self, co2: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U4> = Vec::new();
+        let mut vec: Vec<u8, U5> = Vec::new();
         vec.extend_from_slice(&(Command::SetForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
-        vec.extend_from_slice(&co2.to_be_bytes()).expect(EXPECT_MSG);
+        self.add_argument(&mut vec, &co2.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
     }
 
@@ -87,36 +95,18 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     }
 
     pub fn set_measurement_interval(&mut self, seconds: u16) -> Result<(), E> {
-        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
-        let mut vec: Vec<u8, U8> = Vec::new();
+        let mut vec: Vec<u8, U5> = Vec::new();
         vec.extend_from_slice(&(Command::SetMeasurementInterval as u16).to_be_bytes()).expect(EXPECT_MSG);
-        crc.update(&(Command::SetMeasurementInterval as u16).to_be_bytes());
-        vec.push(crc.finish()).expect(EXPECT_MSG);
-        crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
-        vec.extend_from_slice(&seconds.to_be_bytes()).expect(EXPECT_MSG);
-        crc.update(&seconds.to_be_bytes());
-        vec.push(crc.finish()).expect(EXPECT_MSG);
+        self.add_argument(&mut vec, &seconds.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
     }
 
     /// Start measuring with mbar (pressure) compensation.
     pub fn start_measuring_with_mbar(&mut self, pressure: u16) -> Result<(), E> {
-        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
         let mut vec: Vec<u8, U5> = Vec::new();
         vec.extend_from_slice(&(Command::StartContinuousMeasurement as u16).to_be_bytes()).expect(EXPECT_MSG);
-//        crc.update(&(Command::StartContinuousMeasurement as u16).to_be_bytes());
-//        vec.push(crc.finish()).expect(EXPECT_MSG);
-        crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
-        vec.extend_from_slice(&pressure.to_be_bytes()).expect(EXPECT_MSG);
-        crc.update(&pressure.to_be_bytes());
-        vec.push(crc.finish()).expect(EXPECT_MSG);
+        self.add_argument(&mut vec, &pressure.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
-    }
-
-    pub fn test(&mut self) -> u8 {
-        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
-        crc.update(&[0xbe, 0xef]);
-        crc.finish()
     }
 
     pub fn data_ready(&mut self) -> Result<bool, E> {
