@@ -11,4 +11,5 @@ edition = "2018"
 
 [dependencies]
 embedded-hal = "0.2.2"
-heapless = "0.4.2"
+heapless =  { version = "0.4.2", features = ["const-fn"] }
+crc_all = "0.1.0"

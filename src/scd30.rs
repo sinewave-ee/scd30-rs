@@ -1,6 +1,7 @@
 use embedded_hal::blocking::i2c::{Read, Write};
 use heapless::Vec;
 use heapless::consts::*;
+use crc_all::Crc;
 
 pub enum Command {
     StartContinuousMeasurement  = 0x0010,
@@ -24,6 +25,7 @@ pub struct Scd30<T> {
     address: u8,
 }
 
+#[derive(Debug)]
 pub struct Measurement {
     pub co2:         f32,
     pub humidity:    f32,
@@ -72,17 +74,49 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
         self.comm.write(self.address, &vec)
     }
 
+    pub fn set_forced_recalibration_value(&mut self, co2: u16) -> Result<(), E> {
+        let mut vec: Vec<u8, U4> = Vec::new();
+        vec.extend_from_slice(&(Command::SetForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
+        vec.extend_from_slice(&co2.to_be_bytes()).expect(EXPECT_MSG);
+        self.comm.write(self.address, &vec)
+    }
+
     /// Start measuring without mbar compensation.
     pub fn start_measuring(&mut self) -> Result<(), E> {
         self.start_measuring_with_mbar(0)
     }
 
+    pub fn set_measurement_interval(&mut self, seconds: u16) -> Result<(), E> {
+        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
+        let mut vec: Vec<u8, U8> = Vec::new();
+        vec.extend_from_slice(&(Command::SetMeasurementInterval as u16).to_be_bytes()).expect(EXPECT_MSG);
+        crc.update(&(Command::SetMeasurementInterval as u16).to_be_bytes());
+        vec.push(crc.finish()).expect(EXPECT_MSG);
+        crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
+        vec.extend_from_slice(&seconds.to_be_bytes()).expect(EXPECT_MSG);
+        crc.update(&seconds.to_be_bytes());
+        vec.push(crc.finish()).expect(EXPECT_MSG);
+        self.comm.write(self.address, &vec)
+    }
+
     /// Start measuring with mbar (pressure) compensation.
     pub fn start_measuring_with_mbar(&mut self, pressure: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U4> = Vec::new();
+        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
+        let mut vec: Vec<u8, U5> = Vec::new();
         vec.extend_from_slice(&(Command::StartContinuousMeasurement as u16).to_be_bytes()).expect(EXPECT_MSG);
+//        crc.update(&(Command::StartContinuousMeasurement as u16).to_be_bytes());
+//        vec.push(crc.finish()).expect(EXPECT_MSG);
+        crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
         vec.extend_from_slice(&pressure.to_be_bytes()).expect(EXPECT_MSG);
+        crc.update(&pressure.to_be_bytes());
+        vec.push(crc.finish()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
+    }
+
+    pub fn test(&mut self) -> u8 {
+        let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
+        crc.update(&[0xbe, 0xef]);
+        crc.finish()
     }
 
     pub fn data_ready(&mut self) -> Result<bool, E> {
