@@ -1,6 +1,6 @@
 [package]
 name = "scd30"
-version = "0.2.3"
+version = "0.3.0"
 description = "A SCD30 driver crate"
 authors = ["Vincent Stakenburg <vincentstakenburg@gmail.com>"]
 repository = "https://github.com/sinuss/scd30-rs"
