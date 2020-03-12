@@ -10,7 +10,7 @@ pub enum Command {
     GetDataReadyStatus          = 0x0202,
     ReadMeasurement             = 0x0300,
     SetAutomaticSelfCalibration = 0x5306,
-    SetForcedRecalibrationValue = 0x5204,
+    ForcedRecalibrationValue    = 0x5204,
     SetTemperatureOffset        = 0x5403,
     SetAltitude                 = 0x5102,
     ReadFirmwareVersion         = 0xd100,
@@ -84,8 +84,23 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
 
     pub fn set_forced_recalibration_value(&mut self, co2: u16) -> Result<(), E> {
         let mut vec: Vec<u8, U5> = Vec::new();
-        vec.extend_from_slice(&(Command::SetForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
+        vec.extend_from_slice(&(Command::ForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &co2.to_be_bytes()).expect(EXPECT_MSG);
+        self.comm.write(self.address, &vec)
+    }
+
+    pub fn get_forced_recalibration_value(&mut self) -> Result<u16, E> {
+        let mut buf = [0u8; 2];
+        let mut vec: Vec<u8, U5> = Vec::new();
+        vec.extend_from_slice(&(Command::ForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
+        self.comm.read(self.address, &mut buf)?;
+        Ok(u16::from_be_bytes([buf[0], buf[1]]))
+    }
+
+    pub fn set_temperature_offset(&mut self, offset: u16) -> Result<(), E> {
+        let mut vec: Vec<u8, U5> = Vec::new();
+        vec.extend_from_slice(&(Command::SetTemperatureOffset as u16).to_be_bytes()).expect(EXPECT_MSG);
+        self.add_argument(&mut vec, &offset.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
     }
 
