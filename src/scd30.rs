@@ -1,6 +1,5 @@
 use embedded_hal::blocking::i2c::{Read, Write};
-use heapless::{Vec, ArrayLength};
-use heapless::consts::*;
+use heapless::Vec;
 use crc_all::Crc;
 
 pub enum Command {
@@ -37,7 +36,7 @@ pub struct Measurement {
 /// [datasheet]: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/9.5_CO2/Sensirion_CO2_Sensors_SCD30_Interface_Description.pdf
 impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
 
-    fn add_argument<N>(&mut self, buf: &mut Vec<u8, N>, data: &[u8]) -> Result<(), ()> where N: ArrayLength<u8> {
+    fn add_argument<const N: usize>(&mut self, buf: &mut Vec<u8, N>, data: &[u8]) -> Result<(), ()> {
         buf.extend_from_slice(data)?;
         let mut crc = Crc::<u8>::new(0x31, 8, 0xff, 0, false);
         crc.update(data);
@@ -63,7 +62,7 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     }
 
     pub fn soft_reset(&mut self) -> Result<(), E> {
-        self.comm.write(self.address, &(Command::SoftReset as u16).to_be_bytes())
+        self.comm.write(self.address, &(Command::SoftReset as u16).to_be_bytes()) 
     }
 
     pub fn stop_measuring(&mut self) -> Result<(), E> {
@@ -76,14 +75,14 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     /// 7 days to find the initial parameter for ASC. The sensor has to be exposed to
     /// at least 1 hour of fresh air (~400ppm CO₂) per day.
     pub fn set_automatic_calibration(&mut self, enable: bool) -> Result<(), E> {
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::SetAutomaticSelfCalibration as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &(enable as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
     }
 
     pub fn set_forced_recalibration_value(&mut self, co2: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::ForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &co2.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
@@ -91,14 +90,14 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
 
     pub fn get_forced_recalibration_value(&mut self) -> Result<u16, E> {
         let mut buf = [0u8; 2];
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::ForcedRecalibrationValue as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.comm.read(self.address, &mut buf)?;
         Ok(u16::from_be_bytes([buf[0], buf[1]]))
     }
 
     pub fn set_temperature_offset(&mut self, offset: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::SetTemperatureOffset as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &offset.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
@@ -110,7 +109,7 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     }
 
     pub fn set_measurement_interval(&mut self, seconds: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::SetMeasurementInterval as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &seconds.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
@@ -118,7 +117,7 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
 
     /// Start measuring with mbar (pressure) compensation.
     pub fn start_measuring_with_mbar(&mut self, pressure: u16) -> Result<(), E> {
-        let mut vec: Vec<u8, U5> = Vec::new();
+        let mut vec: Vec<u8, 5> = Vec::new();
         vec.extend_from_slice(&(Command::StartContinuousMeasurement as u16).to_be_bytes()).expect(EXPECT_MSG);
         self.add_argument(&mut vec, &pressure.to_be_bytes()).expect(EXPECT_MSG);
         self.comm.write(self.address, &vec)
