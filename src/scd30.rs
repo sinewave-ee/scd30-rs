@@ -62,7 +62,7 @@ impl<T, E> Scd30<T> where T: Read<Error = E> + Write<Error = E> {
     }
 
     pub fn soft_reset(&mut self) -> Result<(), E> {
-        self.comm.write(self.address, &(Command::SoftReset as u16).to_be_bytes()) 
+        self.comm.write(self.address, &(Command::SoftReset as u16).to_be_bytes())
     }
 
     pub fn stop_measuring(&mut self) -> Result<(), E> {
